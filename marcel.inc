@@ -1,4 +1,6 @@
 #include <a_samp>
+#include <regex>
+#include <foreach>
 
 new vehicleNames[][] =
 {
@@ -35,7 +37,6 @@ new vehicleNames[][] =
  	"Phoenix", "Glendale", "Sadler", "Luggage", "Luggage", "Stairs", "Boxville",
  	"Tiller", "Utility Trailer"
 };
-
 
 /**
  * Turns an integer value into a boolean(non-zero = true, 0 = false)
@@ -116,7 +117,211 @@ stock getVehicleNameByModelID(modelId)
 	return carName;
 }
 
+/*
+Description:
+Checks if the player is in any vehicle.
+
+Parameters:
+playerid	the playerid to check
+
+Returns:
+true if he is inside of a vehicle and otherwise false
+*/
 stock isPlayerInVehicle(playerid)
 {
 	return GetPlayerVehicleID(playerid) == 0 ? false : true;
+}
+
+
+/*
+Description:
+Replaces the players actual vehicle with another one. If he isn't isnide of an vehicle, the vehicle won't be replaced.
+
+Parameters:
+playerid			the players is
+modelId				the new vehicles model id
+hasToBeDriver(true)	Does he have to be the driver to make his vehicle get replaces
+*/	
+switchPlayersVehicle(playerid, modelId, bool:hasToBeDriver = true)
+{
+	if(isPlayerInVehicle(playerid))
+	{
+		new playerVehicle = GetPlayerVehicleID(playerid);
+		if(GetVehicleModel(playerVehicle) != modelId)
+		{
+		    if(hasToBeDriver)
+		    {
+		        if(GetPlayerVehicleSeat(playerid) != 0)
+		        {
+					return false;
+			    }
+    		}
+    		
+    		new Float:X, Float:Y, Float:Z;
+			new Float:zAngle;
+			new Float:velX, Float:velY, Float:velZ;
+			GetVehicleVelocity(playerVehicle, velX, velY, velZ);
+			GetVehiclePos(playerVehicle, X, Y, Z);
+			GetVehicleZAngle(playerVehicle, zAngle);
+
+			DestroyVehicle(playerVehicle);
+			new newVehicle = CreateVehicle(modelId, X, Y, Z, zAngle, -1, -1, -1);
+			SetVehicleVirtualWorld(newVehicle, GetPlayerVirtualWorld(playerid));
+			PutPlayerInVehicle(playerid, newVehicle, 0);
+
+	    	SetVehiclePos(playerVehicle, X, Y, Z);
+	    	SetVehicleZAngle(playerVehicle, zAngle);
+	    	SetVehicleVelocity(playerVehicle, velX, velY, velZ);
+	    	return true;
+		}
+	}
+	return false;
+}
+
+stock removePlayerVehicle(playerid)
+{
+	new vehicleId = GetPlayerVehicleID(playerid);
+	if(vehicleId != 0)
+	{
+		new Float:X, Float:Y, Float:Z;
+		GetPlayerPos(playerid, X, Y ,Z);
+		SetPlayerPos(playerid, X, Y, Z);
+		DestroyVehicle(vehicleId);
+	}
+}
+
+addNitroToPlayersVehicle(playerid)
+{
+	if(isPlayerInVehicle(playerid))
+    {
+    	AddVehicleComponent(GetPlayerVehicleID(playerid), 1010);
+    }
+    return 1;
+}
+
+repairPlayersVehicle(playerid)
+{
+	if(isPlayerInVehicle(playerid))
+    {
+	    RepairVehicle(GetPlayerVehicleID(playerid));
+	}
+	return 1;
+}
+
+#define BYTES_PER_CELL 				4
+
+stock SendClientMessageFormatted(playerid, color, fstring[], {Float, _}:...)
+{
+    static const STATIC_ARGS = 3;
+    new n = (numargs() - STATIC_ARGS) * BYTES_PER_CELL;
+    if(n)
+    {
+        new message[144],arg_start,arg_end;
+        #emit CONST.alt        fstring
+        #emit LCTRL          5
+        #emit ADD
+        #emit STOR.S.pri        arg_start
+
+        #emit LOAD.S.alt        n
+        #emit ADD
+        #emit STOR.S.pri        arg_end
+        do
+        {
+            #emit LOAD.I
+            #emit PUSH.pri
+            arg_end -= BYTES_PER_CELL;
+            #emit LOAD.S.pri      arg_end
+        }
+        while(arg_end > arg_start);
+
+        #emit PUSH.S          fstring
+        #emit PUSH.C          144
+        #emit PUSH.ADR         message
+
+        n += BYTES_PER_CELL * 3;
+        #emit PUSH.S          n
+        #emit SYSREQ.C         format
+
+        n += BYTES_PER_CELL;
+        #emit LCTRL          4
+        #emit LOAD.S.alt        n
+        #emit ADD
+        #emit SCTRL          4
+
+        if(playerid == INVALID_PLAYER_ID)
+        {
+            #pragma unused playerid
+            return SendClientMessageToAll(color, message);
+        } else {
+            return SendClientMessage(playerid, color, message);
+        }
+    } else {
+        if(playerid == INVALID_PLAYER_ID)
+        {
+            #pragma unused playerid
+            return SendClientMessageToAll(color, fstring);
+        } else {
+            return SendClientMessage(playerid, color, fstring);
+        }
+    }
+}
+
+/*
+Description:
+Validates a players password.
+
+Parameters
+password    the password to validate
+
+Return values:
+'true' if the password is valid and 'false' if not.
+*/
+isPasswordValid(password[])
+{
+	//TODO(MSC): Add more validation steps
+	if(strlen(password) >= 7)
+	{
+	    return true;
+	}
+	return false;
+}
+
+/*
+Description:
+Validates an E-Mail address.
+
+Parameters
+eMail	the E-Mail address to validate
+Return values:
+'true' if the E-Mail address is valid and 'false' if not.
+*/
+isEmailValid(eMail[])
+{
+	static RegEx:rEmail;
+
+	if ( !rEmail )
+	{
+		rEmail = regex_build("[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?");
+	}
+
+	return regex_match_exid(eMail, rEmail);
+}
+
+stock isVehicleOccupied(vehicleid)
+{
+    foreach(Player,i)
+    {
+        if(IsPlayerInAnyVehicle(i))
+        {
+            if(GetPlayerVehicleID(i) == vehicleid)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+	return false;
 }
