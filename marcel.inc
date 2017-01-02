@@ -299,7 +299,7 @@ Return values:
 stock isPasswordValid(password[])
 {
 	//TODO(MSC): Add more validation steps
-	if(strlen(password) >=6 7)
+	if(strlen(password) >= 7)
 	{
 	    return false;
 	}
@@ -369,7 +369,7 @@ stock getTimeAsString(time)
 	new seconds = secondsAll % 60;
 	new minutes = secondsAll / 60;
 
-	new timeStr[13];
+	new timeStr[12];
 	format(timeStr, sizeof(timeStr), "%02d:%02d:%03d", minutes, seconds, milliseconds);
 	return timeStr;
 }
@@ -402,4 +402,20 @@ stock generateSalt()
 stock isCharacterInRange(character, char1, char2)
 {
 	return (character <= char2 && character >= char1);
+}
+
+stock deleteAllVehicles(bool:onlyIfUnoccupied = false)
+{
+	for(new i = 0, vehiclePoolSize = GetVehiclePoolSize(); i < vehiclePoolSize; i++)
+	{
+		if(onlyIfUnoccupied)
+		{
+			if(IsVehicleOccupied(i))
+			{
+				continue;
+			}
+		}
+		DestroyVehicle(i);
+	}
+	return 1;
 }
