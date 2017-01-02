@@ -1,3 +1,16 @@
+/*
+██████╗ ██╗   ██╗    ███╗██████╗ ██╗ ██████╗ ███████╗███╗      ███╗   ███╗ █████╗ ██████╗  ██████╗███████╗██╗                      
+██╔══██╗╚██╗ ██╔╝    ██╔╝██╔══██╗██║██╔═══██╗██╔════╝╚██║      ████╗ ████║██╔══██╗██╔══██╗██╔════╝██╔════╝██║                      
+██████╔╝ ╚████╔╝     ██║ ██████╔╝██║██║   ██║███████╗ ██║█████╗██╔████╔██║███████║██████╔╝██║     █████╗  ██║                      
+██╔══██╗  ╚██╔╝      ██║ ██╔══██╗██║██║   ██║╚════██║ ██║╚════╝██║╚██╔╝██║██╔══██║██╔══██╗██║     ██╔══╝  ██║                      
+██████╔╝   ██║       ███╗██████╔╝██║╚██████╔╝███████║███║      ██║ ╚═╝ ██║██║  ██║██║  ██║╚██████╗███████╗███████╗                 
+╚═════╝    ╚═╝       ╚══╝╚═════╝ ╚═╝ ╚═════╝ ╚══════╝╚══╝      ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝                 
+
+NOTE: This code is not 100% written by me!
+
+TODO(msc) finish documentation
+*/
+
 #include <a_samp>
 #include <regex>
 #include <foreach>
@@ -185,6 +198,14 @@ stock switchPlayersVehicle(playerid, modelId, bool:keepVelocity = true, Float:ad
 	return false;
 }
 
+/*
+Description:
+Removes a player from his vehicle by setting his position.
+After the removal of the player the vehicle will be deleted.
+
+Parameters:
+playerid	the player that you want to remove the vehicle from
+*/
 stock removePlayerVehicle(playerid)
 {
 	new vehicleId = GetPlayerVehicleID(playerid);
@@ -197,7 +218,15 @@ stock removePlayerVehicle(playerid)
 	}
 }
 
-stock addNitroToPlayersVehicle(playerid, bool:playsound = true)
+/*
+Description:
+Adds Nitro to players vehicle and plays a sound.
+
+Parameters:
+playerid						player that will get nitro put into his vehicle
+Playersound(true by default)	if this is true, a sound will be played to notify the player
+*/
+stock addNitroToPlayersVehicle(playerid, bool:playSound = true)
 {
 	new vehicleId = GetPlayerVehicleID(playerid);
 
@@ -206,7 +235,7 @@ stock addNitroToPlayersVehicle(playerid, bool:playsound = true)
 		RemoveVehicleComponent(vehicleId, 1010);
     	AddVehicleComponent(vehicleId, 1010);
 
-    	if(playsound)
+    	if(playSound)
 		{
 			PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
 		}
@@ -214,14 +243,22 @@ stock addNitroToPlayersVehicle(playerid, bool:playsound = true)
     return 1;
 }
 
-stock repairPlayersVehicle(playerid, bool:playsound = true)
+/*
+Description:
+Repairs players vehicle and plays a sound.
+
+Parameters:
+playerid						player that will get his vehicle repaired
+Playersound(true by default)	if this is true, a sound will be played to notify the player
+*/
+stock repairPlayersVehicle(playerid, bool:playSound = true)
 {
 	new vehicleId = GetPlayerVehicleID(playerid);
 
 	if(vehicleId != 0)
 	{
 	    RepairVehicle(vehicleId);
-		if(playsound)
+		if(playSound)
 		{
 			PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
 		}
@@ -229,8 +266,8 @@ stock repairPlayersVehicle(playerid, bool:playsound = true)
 	return 1;
 }
 
-#define BYTES_PER_CELL 				4
 
+#define BYTES_PER_CELL 				4
 stock SendClientMessageFormatted(playerid, color, fstring[], {Float, _}:...)
 {
     static const STATIC_ARGS = 3;
@@ -328,16 +365,17 @@ stock isEmailValid(eMail[])
 	return regex_match_exid(eMail, rEmail);
 }
 
-stock isVehicleOccupied(vehicleid)
+
+stock isVehicleOccupied(vehicleId)
 {
-	#warning The Method 'isVehicleOccupied(vehicleid)' is deprecated
+	#warning The Method 'isVehicleOccupied(vehicleId)' is deprecated, i recommend to use YSFs "IsVehicleOccupied(vehicleid)."
     foreach(Player,i)
     {
 		new playerVehicle = GetPlayerVehicleID(i);
 
 		if(playerVehicle != 0)
 		{
-            if(playerVehicle == vehicleid)
+            if(playerVehicle == vehicleId)
             {
                 return true;
             }
@@ -348,21 +386,47 @@ stock isVehicleOccupied(vehicleid)
 
 stock kick(playerid, color, message[])
 {
+	//TODO(msc) add timer before kicking
 	SendClientMessage(playerid, color, message);
 	Kick(playerid);
 	return true;
 }
 
-stock getTickDiff(newtick, oldtick) 
+
+/*
+Description:
+Returns the difference of two tick values. (overflow safe)
+
+Parameters:
+newTick		the latest tick
+oldTick		the older tick
+
+IMPORTANT:
+Don't confuse old tick and new tick, otherwise you get a wrong result!
+
+Returns:
+Difference between newTick and oldTick
+*/
+stock getTickDiff(newTick, oldTick) 
 { 
-    if (oldtick < 0 && newtick >= 0) { 
-        return newtick - oldtick; 
-    } else if (oldtick >= 0 && newtick < 0 || oldtick > newtick) { 
-        return (cellmax - oldtick + 1) - (cellmin - newtick); 
+    if (oldTick < 0 && newTick >= 0) { 
+        return newTick - oldTick; 
+    } else if (oldTick >= 0 && newTick < 0 || oldTick > newTick) { 
+        return (cellmax - oldTick + 1) - (cellmin - newTick); 
     } 
-    return newtick - oldtick; 
+    return newTick - oldTick; 
 }
 
+/*
+Description:
+Returns time (ms) as String (MMM:SS:MSMSMS)
+
+Parameters:
+time	time in ms
+
+Return Values:
+timeStr		Formatted time string
+*/
 stock getTimeAsString(time)
 {
 	new milliseconds = time % 1000;
@@ -400,11 +464,27 @@ stock generateSalt()
 	return salt;
 }
 
-stock isCharacterInRange(character, char1, char2)
+/*
+Description:
+Finds out if a character is on range of two other characters
+
+Parameters:
+character	character to check if it is in range
+charMin		minimum range character
+charMax		maximum range character
+*/
+stock isCharacterInRange(character, charMin, charMax)
 {
-	return (character <= char2 && character >= char1);
+	return (character <= charMax && character >= charMin);
 }
 
+/*
+Description:
+Deletes all Vehicles.
+
+Parameters:
+onlyIfUnoccupied	if this is set to true, vehicel will only be deleted when they are unoccupied
+*/
 stock deleteAllVehicles(bool:onlyIfUnoccupied = false)
 {
 	for(new i = 0, vehiclePoolSize = GetVehiclePoolSize(); i < vehiclePoolSize; i++)
