@@ -1,6 +1,7 @@
 #include <a_samp>
 #include <regex>
 #include <foreach>
+#include <YSF>
 
 #define MAX_PLAYER_NAME_EX MAX_PLAYER_NAME + 1
 
