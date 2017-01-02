@@ -2,6 +2,8 @@
 #include <regex>
 #include <foreach>
 
+#define MAX_PLAYER_NAME_EX MAX_PLAYER_NAME + 1
+
 new vehicleNames[][] =
 {
     "Landstalker", "Bravura", "Buffalo", "Linerunner", "Perrenial", "Sentinel",
@@ -48,20 +50,16 @@ new vehicleNames[][] =
 **/
 stock putIntegerValueIntoBoolean(integer, &bool:boolean)
 {
-	if(integer == 1)
+	/*
+	Since PAWN interprets everything thats non-zero as true (1) thats why the boolean will be set to true
+	*/
+	if(integer >= 1)
 	{
 	    boolean = true;
 	}
 	else if(integer == 0)
 	{
 	    boolean = false;
-	}
-	/*
-		Since PAWN interprets everything thats non-zero as true (1) thats why the boolean will be set to true
-	*/
-	else
-	{
-		boolean = true;
 	}
 	return 1;
 }
@@ -78,8 +76,8 @@ Playername
 */
 stock getName(playerid)
 {
-	new name[MAX_PLAYER_NAME];
-	GetPlayerName(playerid, name, MAX_PLAYER_NAME);
+	new name[MAX_PLAYER_NAME_EX];
+	GetPlayerName(playerid, name, MAX_PLAYER_NAME_EX);
 	return name;
 }
 
@@ -95,7 +93,7 @@ defined Vehiclename
 */
 stock getVehicleNameByID(vehicleid)
 {
-	new carName[20];
+	new carName[17];
 	format(carName, sizeof(carName),"%s", vehicleNames[GetVehicleModel(vehicleid) - 400]);
 	return carName;
 }
@@ -112,7 +110,7 @@ defined Vehiclename
 */
 stock getVehicleNameByModelID(modelId)
 {
-	new carName[20];
+	new carName[17];
 	format(carName, sizeof(carName),"%s", vehicleNames[modelId - 400]);
 	return carName;
 }
@@ -142,27 +140,32 @@ playerid			the players is
 modelId				the new vehicles model id
 hasToBeDriver(true)	Does he have to be the driver to make his vehicle get replaces
 */	
-switchPlayersVehicle(playerid, modelId, bool:hasToBeDriver = true)
+stock switchPlayersVehicle(playerid, modelId, bool:keepVelocity = true, Float:addToX = 0.0, Float:addToY = 0.0, Float:addToZ = 0.0, bool:hasToBeDriver = true)
 {
-	if(isPlayerInVehicle(playerid))
+	new playerVehicle = GetPlayerVehicleID(playerid);
+
+	if(playerVehicle != 0)
 	{
-		new playerVehicle = GetPlayerVehicleID(playerid);
 		if(GetVehicleModel(playerVehicle) != modelId)
 		{
-		    if(hasToBeDriver)
+		    if(hasToBeDriver && GetPlayerVehicleSeat(playerid) != 0)
 		    {
-		        if(GetPlayerVehicleSeat(playerid) != 0)
-		        {
-					return false;
-			    }
+				return false;
     		}
     		
     		new Float:X, Float:Y, Float:Z;
 			new Float:zAngle;
 			new Float:velX, Float:velY, Float:velZ;
-			GetVehicleVelocity(playerVehicle, velX, velY, velZ);
+			if(keepVelocity)
+			{
+				GetVehicleVelocity(playerVehicle, velX, velY, velZ);
+			}
 			GetVehiclePos(playerVehicle, X, Y, Z);
 			GetVehicleZAngle(playerVehicle, zAngle);
+
+			X += addToX;
+			Y += addToY;
+			Z += addToZ;
 
 			DestroyVehicle(playerVehicle);
 			new newVehicle = CreateVehicle(modelId, X, Y, Z, zAngle, -1, -1, -1);
@@ -171,7 +174,10 @@ switchPlayersVehicle(playerid, modelId, bool:hasToBeDriver = true)
 
 	    	SetVehiclePos(playerVehicle, X, Y, Z);
 	    	SetVehicleZAngle(playerVehicle, zAngle);
-	    	SetVehicleVelocity(playerVehicle, velX, velY, velZ);
+			if(keepVelocity)
+			{
+		    	SetVehicleVelocity(playerVehicle, velX, velY, velZ);
+		    }
 	    	return true;
 		}
 	}
@@ -190,20 +196,34 @@ stock removePlayerVehicle(playerid)
 	}
 }
 
-addNitroToPlayersVehicle(playerid)
+stock addNitroToPlayersVehicle(playerid, bool:playsound = true)
 {
-	if(isPlayerInVehicle(playerid))
-    {
-    	AddVehicleComponent(GetPlayerVehicleID(playerid), 1010);
-    }
+	new vehicleId = GetPlayerVehicleID(playerid);
+
+	if(vehicleId != 0)
+	{
+		RemoveVehicleComponent(vehicleId, 1010);
+    	AddVehicleComponent(vehicleId, 1010);
+
+    	if(playsound)
+		{
+			PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
+		}
+	}
     return 1;
 }
 
-repairPlayersVehicle(playerid)
+stock repairPlayersVehicle(playerid, bool:playsound = true)
 {
-	if(isPlayerInVehicle(playerid))
-    {
-	    RepairVehicle(GetPlayerVehicleID(playerid));
+	new vehicleId = GetPlayerVehicleID(playerid);
+
+	if(vehicleId != 0)
+	{
+	    RepairVehicle(vehicleId);
+		if(playsound)
+		{
+			PlayerPlaySound(playerid, 1133, 0.0, 0.0, 0.0);
+		}
 	}
 	return 1;
 }
@@ -276,14 +296,14 @@ password    the password to validate
 Return values:
 'true' if the password is valid and 'false' if not.
 */
-isPasswordValid(password[])
+stock isPasswordValid(password[])
 {
 	//TODO(MSC): Add more validation steps
-	if(strlen(password) >= 7)
+	if(strlen(password) >=6 7)
 	{
-	    return true;
+	    return false;
 	}
-	return false;
+	return true;
 }
 
 /*
@@ -295,7 +315,7 @@ eMail	the E-Mail address to validate
 Return values:
 'true' if the E-Mail address is valid and 'false' if not.
 */
-isEmailValid(eMail[])
+stock isEmailValid(eMail[])
 {
 	static RegEx:rEmail;
 
@@ -309,19 +329,77 @@ isEmailValid(eMail[])
 
 stock isVehicleOccupied(vehicleid)
 {
+	#warning The Method 'isVehicleOccupied(vehicleid)' is deprecated
     foreach(Player,i)
     {
-        if(IsPlayerInAnyVehicle(i))
-        {
-            if(GetPlayerVehicleID(i) == vehicleid)
+		new playerVehicle = GetPlayerVehicleID(i);
+
+		if(playerVehicle != 0)
+		{
+            if(playerVehicle == vehicleid)
             {
                 return true;
-            }
-            else
-            {
-                return false;
             }
         }
     }
 	return false;
+}
+
+stock kick(playerid, color, message[])
+{
+	SendClientMessage(playerid, color, message);
+	Kick(playerid);
+	return true;
+}
+
+stock getTickDiff(newtick, oldtick) 
+{ 
+    if (oldtick < 0 && newtick >= 0) { 
+        return newtick - oldtick; 
+    } else if (oldtick >= 0 && newtick < 0 || oldtick > newtick) { 
+        return (cellmax - oldtick + 1) - (cellmin - newtick); 
+    } 
+    return newtick - oldtick; 
+}
+
+stock getTimeAsString(time)
+{
+	new milliseconds = time % 1000;
+	new secondsAll = time / 1000;
+	new seconds = secondsAll % 60;
+	new minutes = secondsAll / 60;
+
+	new timeStr[13];
+	format(timeStr, sizeof(timeStr), "%02d:%02d:%03d", minutes, seconds, milliseconds);
+	return timeStr;
+}
+
+stock reshowTextDrawForAll(Text:text)
+{
+	TextDrawHideForAll(text);
+	TextDrawShowForAll(text);
+}
+
+stock reshowTextDrawForPlayer(playerid, Text:text)
+{
+	TextDrawHideForPlayer(playerid, text);
+	TextDrawShowForPlayer(playerid, text);
+}
+
+stock generateSalt()
+{
+	new salt[11];
+
+	for(new i; i < 10; i++)
+	{
+		salt[i] = random(79) + 47;
+	}
+	salt[10] = 0;
+	
+	return salt;
+}
+
+stock isCharacterInRange(character, char1, char2)
+{
+	return (character <= char2 && character >= char1);
 }
